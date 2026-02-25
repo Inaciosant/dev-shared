@@ -1,0 +1,16 @@
+# Node
+**/node_modules
+**/dist
+npm-debug.log*
+
+# Env
+**/.env
+**/.env.*
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Logs
+**/*.log
