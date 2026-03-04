@@ -1,5 +1,8 @@
 import { IComment } from "@/types/comments";
 import { ISetup } from "@/types/setup";
+import { IPopulatedUser } from "@/types/user";
+
+export const MOCK_LOGGED_USER_ID = "u1";
 
 export const mockSetups: ISetup[] = [
   {
@@ -11,6 +14,10 @@ export const mockSetups: ISetup[] = [
     workModality: "Remote",
     thumbnail:
       "https://images.unsplash.com/photo-1496171367470-9ed9a91ea931?auto=format&fit=crop&w=1200&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1484788984921-03950022c9ef?auto=format&fit=crop&w=1200&q=80",
+    ],
     gears: [
       { _id: "g1", category: "Monitor", name: "Ultrawide 34", brand: "LG" },
       {
@@ -37,6 +44,10 @@ export const mockSetups: ISetup[] = [
     workModality: "Hybrid",
     thumbnail:
       "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1497215842964-222b430dc094?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1200&q=80",
+    ],
     gears: [
       { _id: "g4", category: "Monitor", name: "Dual 27 IPS", brand: "Dell" },
       { _id: "g5", category: "Desk", name: "Mesa regulável", brand: "FlexiSpot" },
@@ -145,4 +156,19 @@ export function filterSetupsByQuery(setups: ISetup[], q: string) {
 
 export function getMockCommentsBySetupId(setupId: string): IComment[] {
   return [...(commentsBySetupId[setupId] ?? [])];
+}
+
+export function getSetupsByUserId(userId: string): ISetup[] {
+  return mockSetups.filter(
+    (setup) => typeof setup.user === "object" && setup.user._id === userId,
+  );
+}
+
+export function getUserById(userId: string): IPopulatedUser | undefined {
+  return mockSetups
+    .map((setup) => setup.user)
+    .find(
+      (user): user is IPopulatedUser =>
+        typeof user === "object" && user._id === userId,
+    );
 }

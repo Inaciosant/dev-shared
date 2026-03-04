@@ -21,6 +21,7 @@ export interface ISetup {
   workRole: string;
   workModality: WorkModality;
   thumbnail: string;
+  images?: string[];
   gears: IGearItem[];
   softwareStack: string[];
   tags: string[];

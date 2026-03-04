@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import styled from "styled-components";
-import { ImagePlus, UploadCloud, X } from "lucide-react";
+import { ImagePlus, Plus, UploadCloud, X } from "lucide-react";
 
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { Button } from "@/components/ui/Button";
@@ -48,11 +48,6 @@ const Title = styled.h1`
   margin: 0 0 0.4rem;
   color: ${({ theme }) => theme.colors.text};
   font-size: 1.5rem;
-`;
-
-const Subtitle = styled.p`
-  margin: 0 0 1rem;
-  color: ${({ theme }) => theme.colors.textSecondary};
 `;
 
 const Form = styled.form`
@@ -200,12 +195,113 @@ const ErrorText = styled.span`
   color: #ef4444;
 `;
 
-const SideList = styled.ul`
-  margin: 0;
-  padding-left: 1.1rem;
-  color: ${({ theme }) => theme.colors.textSecondary};
+const GearSection = styled.div`
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 10px;
+  padding: 0.85rem;
   display: grid;
+  gap: 0.75rem;
+`;
+
+const GearHeaderText = styled.div`
+  display: grid;
+  gap: 0.15rem;
+`;
+
+const GearTitle = styled.span`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.text};
+`;
+
+const GearSubtitle = styled.span`
+  font-size: 0.78rem;
+  color: ${({ theme }) => theme.colors.textSecondary};
+`;
+
+const GearSectionTop = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+`;
+
+const GearList = styled.div`
+  display: grid;
+  gap: 0.75rem;
+`;
+
+const GearRow = styled.div`
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 10px;
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.65rem;
+  background: ${({ theme }) => theme.colors.surface};
+`;
+
+const GearRowHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 0.5rem;
+`;
+
+const GearRowTitle = styled.span`
+  color: ${({ theme }) => theme.colors.text};
+  font-weight: 600;
+  font-size: 0.9rem;
+`;
+
+const RemoveGearButton = styled.button`
+  border: none;
+  background: transparent;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 0.82rem;
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+`;
+
+const GearGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+
+  @media (max-width: 800px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const GearInput = styled.input`
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: ${({ theme }) => theme.colors.background};
+  color: ${({ theme }) => theme.colors.text};
+  padding: 0.65rem 0.85rem;
+  outline: none;
+
+  &:focus {
+    border-color: ${({ theme }) => theme.colors.primary};
+  }
+`;
+
+const GearSelect = styled.select`
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: ${({ theme }) => theme.colors.background};
+  color: ${({ theme }) => theme.colors.text};
+  padding: 0.65rem 0.85rem;
+  outline: none;
+
+  &:focus {
+    border-color: ${({ theme }) => theme.colors.primary};
+  }
 `;
 
 const Success = styled.div`
@@ -223,6 +319,51 @@ type FormState = {
   softwareStack: string;
   tags: string;
   description: string;
+  gears: GearFormItem[];
+};
+
+type GearCategory =
+  | "Keyboard"
+  | "Mouse"
+  | "Monitor"
+  | "Headset"
+  | "Chair"
+  | "Desk"
+  | "PC/Laptop"
+  | "Other";
+
+type GearCategoryOption = {
+  value: GearCategory;
+  label: string;
+};
+
+type GearFormItem = {
+  category: GearCategory;
+  name: string;
+  brand: string;
+  model: string;
+  link: string;
+  details: string;
+};
+
+const GEAR_CATEGORIES: GearCategoryOption[] = [
+  { value: "Keyboard", label: "Teclado" },
+  { value: "Mouse", label: "Mouse" },
+  { value: "Monitor", label: "Monitor" },
+  { value: "Headset", label: "Headset" },
+  { value: "Chair", label: "Cadeira" },
+  { value: "Desk", label: "Mesa" },
+  { value: "PC/Laptop", label: "PC/Notebook" },
+  { value: "Other", label: "Outro" },
+];
+
+const EMPTY_GEAR: GearFormItem = {
+  category: "Keyboard",
+  name: "",
+  brand: "",
+  model: "",
+  link: "",
+  details: "",
 };
 
 const INITIAL_FORM: FormState = {
@@ -231,6 +372,7 @@ const INITIAL_FORM: FormState = {
   softwareStack: "",
   tags: "",
   description: "",
+  gears: [EMPTY_GEAR],
 };
 
 export default function NewSetupPage() {
@@ -252,6 +394,39 @@ export default function NewSetupPage() {
   ) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: undefined }));
+  };
+
+  const updateGearField = <K extends keyof GearFormItem>(
+    index: number,
+    key: K,
+    value: GearFormItem[K],
+  ) => {
+    setForm((prev) => ({
+      ...prev,
+      gears: prev.gears.map((gear, itemIndex) =>
+        itemIndex === index ? { ...gear, [key]: value } : gear,
+      ),
+    }));
+    setErrors((prev) => ({ ...prev, gears: undefined }));
+  };
+
+  const addGear = () => {
+    setForm((prev) => ({
+      ...prev,
+      gears: [...prev.gears, { ...EMPTY_GEAR }],
+    }));
+    setErrors((prev) => ({ ...prev, gears: undefined }));
+  };
+
+  const removeGear = (index: number) => {
+    setForm((prev) => ({
+      ...prev,
+      gears:
+        prev.gears.length === 1
+          ? [{ ...EMPTY_GEAR }]
+          : prev.gears.filter((_, itemIndex) => itemIndex !== index),
+    }));
+    setErrors((prev) => ({ ...prev, gears: undefined }));
   };
 
   useEffect(() => {
@@ -302,6 +477,9 @@ export default function NewSetupPage() {
     if (!form.workRole.trim()) nextErrors.workRole = "Cargo é obrigatório.";
     if (!form.description.trim())
       nextErrors.description = "Descrição é obrigatória.";
+    if (!form.gears.some((gear) => gear.name.trim())) {
+      nextErrors.gears = "Adicione pelo menos 1 equipamento com nome.";
+    }
     if (!thumbnailFile)
       setThumbnailError("A imagem da postagem é obrigatória.");
 
@@ -323,11 +501,23 @@ export default function NewSetupPage() {
 
     setIsSubmitting(true);
     const payload = new FormData();
+    const normalizedGears = form.gears
+      .map((gear) => ({
+        category: gear.category,
+        name: gear.name.trim(),
+        brand: gear.brand.trim(),
+        model: gear.model.trim(),
+        link: gear.link.trim(),
+        details: gear.details.trim(),
+      }))
+      .filter((gear) => gear.name);
+
     payload.append("title", form.title.trim());
     payload.append("workRole", form.workRole.trim());
     payload.append("softwareStack", form.softwareStack.trim());
     payload.append("tags", form.tags.trim());
     payload.append("description", form.description.trim());
+    payload.append("gears", JSON.stringify(normalizedGears));
     payload.append("thumbnail", thumbnailFile);
 
     for (const [key, value] of payload.entries()) {
@@ -437,11 +627,106 @@ export default function NewSetupPage() {
                 {thumbnailError ? (
                   <ErrorText>{thumbnailError}</ErrorText>
                 ) : (
-                  <Hint>
-                   
-                  </Hint>
+                  <Hint>Use uma imagem horizontal para melhor resultado.</Hint>
                 )}
               </UploadField>
+
+              <GearSection>
+                <GearSectionTop>
+                  <GearHeaderText>
+                    <GearTitle>Equipamentos</GearTitle>
+                    <GearSubtitle>
+                      Preencha ao menos o nome de 1 item. Categoria é em PT-BR.
+                    </GearSubtitle>
+                  </GearHeaderText>
+                  <Button type="button" onClick={addGear}>
+                    <Plus size={16} /> Adicionar Equipamento
+                  </Button>
+                </GearSectionTop>
+
+                {errors.gears ? <ErrorText>{errors.gears}</ErrorText> : null}
+
+                <GearList>
+                  {form.gears.map((gear, index) => (
+                    <GearRow key={`gear-row-${index}`}>
+                      <GearRowHeader>
+                        <GearRowTitle>Equipamento {index + 1}</GearRowTitle>
+                        <RemoveGearButton
+                          type="button"
+                          disabled={form.gears.length === 1}
+                          onClick={() => removeGear(index)}
+                        >
+                          Remover
+                        </RemoveGearButton>
+                      </GearRowHeader>
+
+                      <GearGrid>
+                        <GearSelect
+                          aria-label={`Categoria do equipamento ${index + 1}`}
+                          value={gear.category}
+                          onChange={(event) =>
+                            updateGearField(
+                              index,
+                              "category",
+                              event.target.value as GearCategory,
+                            )
+                          }
+                        >
+                          {GEAR_CATEGORIES.map((category) => (
+                            <option key={category.value} value={category.value}>
+                              {category.label}
+                            </option>
+                          ))}
+                        </GearSelect>
+
+                        <GearInput
+                          placeholder="Nome do item* (ex.: MX Master 3S)"
+                          value={gear.name}
+                          onChange={(event) =>
+                            updateGearField(index, "name", event.target.value)
+                          }
+                        />
+
+                        <GearInput
+                          placeholder="Marca"
+                          value={gear.brand}
+                          onChange={(event) =>
+                            updateGearField(index, "brand", event.target.value)
+                          }
+                        />
+
+                        <GearInput
+                          placeholder="Modelo"
+                          value={gear.model}
+                          onChange={(event) =>
+                            updateGearField(index, "model", event.target.value)
+                          }
+                        />
+
+                        <GearInput
+                          placeholder="Link do produto (opcional)"
+                          value={gear.link}
+                          onChange={(event) =>
+                            updateGearField(index, "link", event.target.value)
+                          }
+                        />
+
+                        <GearInput
+                          placeholder="Detalhes (ex.: mecânico, sem fio, 75%)"
+                          value={gear.details}
+                          onChange={(event) =>
+                            updateGearField(index, "details", event.target.value)
+                          }
+                        />
+                      </GearGrid>
+                    </GearRow>
+                  ))}
+                </GearList>
+
+                <Hint>
+                  Dica: os itens sem nome não serão enviados na publicação.
+                </Hint>
+              </GearSection>
 
               <Input
                 label="Título"

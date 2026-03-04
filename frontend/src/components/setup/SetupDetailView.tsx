@@ -1,8 +1,16 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import styled from "styled-components";
-import { Clock3, MessageCircle, Monitor, Tag } from "lucide-react";
+import Link from "next/link";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  MessageCircle,
+  Monitor,
+  Tag,
+} from "lucide-react";
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
@@ -38,18 +46,66 @@ const Hero = styled.section`
 `;
 
 const Media = styled.div`
+  position: relative;
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: 14px;
   overflow: hidden;
   background: ${({ theme }) => theme.colors.surface};
+`;
 
-  img {
-    width: 100%;
-    height: 100%;
-    min-height: 280px;
-    object-fit: cover;
-    display: block;
-  }
+const MediaImage = styled.img`
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+  object-fit: cover;
+  display: block;
+`;
+
+const CarouselControls = styled.div`
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: space-between;
+  padding: 0 0.6rem;
+  pointer-events: none;
+`;
+
+const CarouselButton = styled.button`
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: ${({ theme }) => `${theme.colors.surface}dd`};
+  color: ${({ theme }) => theme.colors.text};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+`;
+
+const CarouselDots = styled.div`
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.65rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.45rem;
+`;
+
+const DotButton = styled.button<{ $active: boolean }>`
+  width: 8px;
+  height: 8px;
+  border: none;
+  border-radius: 999px;
+  background: ${({ theme, $active }) =>
+    $active ? theme.colors.primary : `${theme.colors.surface}cc`};
+  cursor: pointer;
+  padding: 0;
 `;
 
 const InfoCard = styled.div`
@@ -86,6 +142,11 @@ const AuthorRow = styled.div`
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid ${({ theme }) => theme.colors.border};
+`;
+
+const AuthorProfileLink = styled(Link)`
+  text-decoration: none;
+  color: inherit;
 `;
 
 const AuthorText = styled.div`
@@ -279,9 +340,27 @@ export function SetupDetailView({ setup }: SetupDetailViewProps) {
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const authorName = typeof setup.user === "object" ? setup.user.name : "Usuário";
+  const authorId = typeof setup.user === "object" ? setup.user._id : undefined;
   const helperText = `${newComment.trim().length}/500 caracteres`;
+  const galleryImages = useMemo(
+    () =>
+      Array.from(new Set([setup.thumbnail, ...(setup.images ?? [])].filter(Boolean))),
+    [setup.thumbnail, setup.images],
+  );
+  const hasCarousel = galleryImages.length > 1;
+
+  const handleNextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % galleryImages.length);
+  };
+
+  const handlePrevImage = () => {
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? galleryImages.length - 1 : prev - 1,
+    );
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -330,7 +409,43 @@ export function SetupDetailView({ setup }: SetupDetailViewProps) {
 
         <Hero>
           <Media>
-            <img src={setup.thumbnail} alt={`Imagem do ${setup.title}`} />
+            <MediaImage
+              src={galleryImages[currentImageIndex] ?? setup.thumbnail}
+              alt={`Imagem do ${setup.title}`}
+            />
+
+            {hasCarousel ? (
+              <>
+                <CarouselControls>
+                  <CarouselButton
+                    type="button"
+                    aria-label="Imagem anterior"
+                    onClick={handlePrevImage}
+                  >
+                    <ChevronLeft size={18} />
+                  </CarouselButton>
+                  <CarouselButton
+                    type="button"
+                    aria-label="Próxima imagem"
+                    onClick={handleNextImage}
+                  >
+                    <ChevronRight size={18} />
+                  </CarouselButton>
+                </CarouselControls>
+
+                <CarouselDots>
+                  {galleryImages.map((image, index) => (
+                    <DotButton
+                      key={`${image}-${index}`}
+                      type="button"
+                      $active={index === currentImageIndex}
+                      aria-label={`Ir para imagem ${index + 1}`}
+                      onClick={() => setCurrentImageIndex(index)}
+                    />
+                  ))}
+                </CarouselDots>
+              </>
+            ) : null}
           </Media>
 
           <InfoCard>
@@ -351,9 +466,30 @@ export function SetupDetailView({ setup }: SetupDetailViewProps) {
             </MetaList>
 
             <AuthorRow>
-              <Avatar src={typeof setup.user === "object" ? setup.user.avatar : ""} fallback={authorName} size={40} />
+              {authorId ? (
+                <AuthorProfileLink href={`/users/${authorId}`}>
+                  <Avatar
+                    src={typeof setup.user === "object" ? setup.user.avatar : ""}
+                    fallback={authorName}
+                    size={40}
+                  />
+                </AuthorProfileLink>
+              ) : (
+                <Avatar
+                  src={typeof setup.user === "object" ? setup.user.avatar : ""}
+                  fallback={authorName}
+                  size={40}
+                />
+              )}
+
               <AuthorText>
-                <AuthorName>{authorName}</AuthorName>
+                {authorId ? (
+                  <AuthorProfileLink href={`/users/${authorId}`}>
+                    <AuthorName>{authorName}</AuthorName>
+                  </AuthorProfileLink>
+                ) : (
+                  <AuthorName>{authorName}</AuthorName>
+                )}
                 <AuthorRole>{setup.workRole}</AuthorRole>
               </AuthorText>
             </AuthorRow>

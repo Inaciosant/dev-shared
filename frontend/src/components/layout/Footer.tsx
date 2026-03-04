@@ -3,116 +3,169 @@
 import styled from "styled-components";
 import Link from "next/link";
 import Divider from "../ui/Divider";
-import { Share2Icon,Github,Linkedin } from "lucide-react";
-
+import { Share2Icon, Github, Linkedin } from "lucide-react";
 
 const FooterContainer = styled.footer`
   border-top: 1px solid ${({ theme }) => theme.colors.borderFotter};
   background-color: ${({ theme }) => theme.colors.footer};
-  padding: 20px;
-  text-align: center;
+  padding: 1.5rem 2rem;
+
+  @media (max-width: 640px) {
+    padding: 1.25rem 1rem;
+  }
+`;
+
+const FooterContent = styled.div`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: start;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const SectionTitle = styled.p`
+  margin: 0 0 0.6rem;
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 0.875rem;
+  font-weight: 600;
 `;
 
 const FooterNav = styled.nav`
   display: flex;
-  justify-content: center;
-  gap: 15px;
-  margin-top: 10px;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 `;
+
 const FooterLink = styled(Link)`
   color: ${({ theme }) => theme.colors.primary};
   text-decoration: none;
-  margin: 0 10px;
+  font-size: 0.85rem;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  transition: all 0.2s ease;
 
   &:hover {
-    text-decoration: underline;
+    text-decoration: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    background-color: ${({ theme }) => theme.colors.background};
   }
-`;
-
-const FooterDev = styled.span`
-  color: ${({ theme }) => theme.colors.primary};
-  text-align: end;
-  display: block;
-  font-size: 0.8rem;
-  margin-top: 10px;
-`;
-
-const FooterRights = styled.p`
-  color: ${({ theme }) => theme.colors.textSecondary};
-  font-size: 0.8rem;
-  margin-top: 10px;
-  gap: 5px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
-
-const FooterIconGit = styled(Github)`
-  color: ${({ theme }) => theme.colors.textSecondary};
-  margin: 0 5px;
-  width: 16px;
-  height: 16px;
-`;
-const FooterIconLinkedin = styled(Linkedin)`
-  color: ${({ theme }) => theme.colors.textSecondary};
-  margin: 0 5px;
-  width: 16px;
-  height: 16px;
 `;
 
 const FooterSocial = styled.div`
   display: flex;
-  justify-content: end;
-  gap: 10px;
-  margin-top: 10px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+
+  @media (max-width: 900px) {
+    align-items: flex-start;
+  }
 `;
 
 const SocialLink = styled(Link)`
   color: ${({ theme }) => theme.colors.textSecondary};
   text-decoration: none;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
 
   &:hover {
+    color: ${({ theme }) => theme.colors.primary};
     text-decoration: underline;
   }
 `;
 
-const SocialIcon = styled(Share2Icon)`
-  color: ${({ theme }) => theme.colors.textSecondary};
-  margin-right: 5px;
+const FooterIconGit = styled(Github)`
   width: 16px;
   height: 16px;
 `;
+
+const FooterIconLinkedin = styled(Linkedin)`
+  width: 16px;
+  height: 16px;
+`;
+
+const BottomRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+
+  @media (max-width: 900px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+`;
+
+const FooterRights = styled.p`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+`;
+
+const FooterDev = styled.span`
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: 0.8rem;
+`;
+
+const SocialIcon = styled(Share2Icon)`
+  width: 16px;
+  height: 16px;
+`;
+
 const Footer: React.FC = () => {
   return (
     <FooterContainer>
-      <FooterRights>
-        &copy; {new Date().getFullYear()} <SocialIcon /> Dev Shared. All rights
-        reserved.
-      </FooterRights>
-         <Divider />
-      <p>
-        Navegação
-      </p>
+      <FooterContent>
+        <div>
+          <SectionTitle>Navegação</SectionTitle>
+          <FooterNav aria-label="Navegação do rodapé">
+            <FooterLink href="/">Início</FooterLink>
+            <FooterLink href="/setups">Setups</FooterLink>
+            <FooterLink href="/setups/new">Criar setup</FooterLink>
+            <FooterLink href="/login">Login</FooterLink>
+          </FooterNav>
+        </div>
 
-      <FooterNav>
-        <FooterLink href="/setups">Setups</FooterLink>
-      </FooterNav>
+        <FooterSocial>
+          <SectionTitle>Redes</SectionTitle>
+          <SocialLink
+            href="https://github.com/inaciosant"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <FooterIconGit />
+            GitHub
+          </SocialLink>
+          <SocialLink
+            href="https://www.linkedin.com/in/inaciosant/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <FooterIconLinkedin />
+            LinkedIn
+          </SocialLink>
+        </FooterSocial>
+      </FooterContent>
 
+      <Divider />
 
-      <FooterDev>Desenvolvido por Inácio sant</FooterDev>
-      <FooterSocial>
-        <SocialLink href="https://github.com/inaciosant" target="_blank">
-          <FooterIconGit />
-          GitHub
-        </SocialLink>
-        
-        <SocialLink href="https://www.linkedin.com/in/inaciosant/" target="_blank">
-          <FooterIconLinkedin />
-          LinkedIn
-        </SocialLink>
-      </FooterSocial>
-
+      <BottomRow>
+        <FooterRights>
+          &copy; {new Date().getFullYear()} <SocialIcon /> Dev Shared. All rights
+          reserved.
+        </FooterRights>
+        <FooterDev>Desenvolvido por Inácio Sant</FooterDev>
+      </BottomRow>
     </FooterContainer>
   );
 };

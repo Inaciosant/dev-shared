@@ -4,14 +4,22 @@ import { FormEvent, useContext, useState, useRef, useEffect } from "react";
 import styled from "styled-components";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search, Sun, Moon, User, LogOut, Settings, Plus } from "lucide-react";
+import { Search, User, LogOut, Settings, Plus } from "lucide-react";
+import { motion, useMotionValueEvent, useScroll } from "framer-motion";
+
 import { ThemeToggleContext } from "../ThemeClientProvider";
+import TogleTheme from "../ui/TogleTheme";
 import { Avatar } from "../ui/Avatar";
 
-const NavContainer = styled.header`
+const NavRoot = styled(motion.div)`
   position: sticky;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 50;
+`;
+
+const NavContainer = styled.header`
   width: 100%;
   min-height: 70px;
   background-color: ${({ theme }) => theme.colors.surface};
@@ -29,6 +37,39 @@ const NavContainer = styled.header`
     align-items: center;
     padding: 0.75rem 1rem;
     gap: 0.75rem;
+  }
+`;
+
+const QuickLinksWrap = styled(motion.div)`
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  background: ${({ theme }) => theme.colors.surface};
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+`;
+
+const QuickLinksList = styled.nav`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+`;
+
+const QuickLink = styled(Link)`
+  text-decoration: none;
+  color: ${({ theme }) => theme.colors.textSecondary};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 999px;
+  padding: 0.28rem 0.65rem;
+  font-size: 0.78rem;
+  line-height: 1;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: ${({ theme }) => theme.colors.primary};
+    border-color: ${({ theme }) => theme.colors.primary};
+    background: ${({ theme }) => `${theme.colors.primary}10`};
   }
 `;
 const UserMenuContainer = styled.div`
@@ -179,24 +220,6 @@ const ActionsContainer = styled.div`
   }
 `;
 
-const IconButton = styled.button`
-  background: transparent;
-  border: none;
-  color: ${({ theme }) => theme.colors.textSecondary};
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem;
-  border-radius: 8px;
-  transition: all 0.2s;
-
-  &:hover {
-    color: ${({ theme }) => theme.colors.primary};
-    background-color: ${({ theme }) => `${theme.colors.primary}1A`};
-  }
-`;
-
 const CreateLink = styled(Link)`
   display: inline-flex;
   align-items: center;
@@ -225,6 +248,18 @@ const CreateLink = styled(Link)`
   }
 `;
 
+const QUICK_LINKS = [
+  { href: "/setups", label: "Todos os setups" },
+  { href: "/setups?q=frontend", label: "Frontend" },
+  { href: "/setups?q=fullstack", label: "Full Stack" },
+  { href: "/setups?q=mobile", label: "Mobile" },
+  { href: "/setups?q=devops", label: "DevOps" },
+];
+
+const HIDE_QUICK_LINKS_AT = 90;
+const SHOW_QUICK_LINKS_AT = 48;
+const ELEVATED_AT = 12;
+
 export function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
@@ -237,7 +272,22 @@ export function Navbar() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchDebounceRef = useRef<number | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showQuickLinks, setShowQuickLinks] = useState(true);
+  const [isElevated, setIsElevated] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { scrollY } = useScroll();
+
+  useMotionValueEvent(scrollY, "change", (latest) => {
+    setShowQuickLinks((prev) => {
+      if (prev && latest > HIDE_QUICK_LINKS_AT) return false;
+      if (!prev && latest < SHOW_QUICK_LINKS_AT) return true;
+      return prev;
+    });
+    setIsElevated((prev) => {
+      const next = latest > ELEVATED_AT;
+      return prev === next ? prev : next;
+    });
+  });
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -322,71 +372,114 @@ export function Navbar() {
   };
 
   return (
-    <NavContainer>
-      <Logo>
-        <Link href="/">DevStack</Link>
-      </Logo>
+    <NavRoot
+      initial={false}
+      animate={{
+        boxShadow: isElevated
+          ? "0 8px 24px rgba(0, 0, 0, 0.08)"
+          : "0 0 0 rgba(0, 0, 0, 0)",
+      }}
+      transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+      style={{ willChange: "box-shadow" }}
+    >
+      <NavContainer>
+        <Logo>
+          <Link href="/">DevStack</Link>
+        </Logo>
 
-      <SearchWrapper onSubmit={handleSearchSubmit}>
-        <Search size={18} color="#64748b" />
-        <input
-          ref={searchInputRef}
-          type="text"
-          placeholder="Buscar por setups"
-          defaultValue={searchParams.get("q") ?? ""}
-          onChange={(event) => applySearch(event.target.value)}
-        />
-        {modifierKey && (
-          <ShortcutKey>
-            {modifierKey} <span>K</span>
-          </ShortcutKey>
-        )}
-      </SearchWrapper>
-
-      <ActionsContainer>
-        <CreateLink href="/setups/new" title="Criar postagem">
-          <Plus size={16} />
-          <span>Criar</span>
-        </CreateLink>
-
-        <IconButton onClick={toggleTheme} title="Alternar Tema">
-          {isDark ? <Sun size={20} /> : <Moon size={20} />}
-        </IconButton>
-
-        <UserMenuContainer ref={menuRef}>
-          <Avatar
-            src={currentUser.avatarUrl}
-            fallback={currentUser.name}
-            size={36}
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+        <SearchWrapper onSubmit={handleSearchSubmit}>
+          <Search size={18} color="#64748b" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Buscar por setups"
+            defaultValue={searchParams.get("q") ?? ""}
+            onChange={(event) => applySearch(event.target.value)}
           />
+          {modifierKey && (
+            <ShortcutKey>
+              {modifierKey} <span>K</span>
+            </ShortcutKey>
+          )}
+        </SearchWrapper>
 
-          <DropdownMenu $isOpen={isDropdownOpen}>
-            <DropdownItem
-              href="/profile"
-              onClick={() => setIsDropdownOpen(false)}
-            >
-              <User size={16} />
-              Meu Perfil
-            </DropdownItem>
+        <ActionsContainer>
+          <CreateLink href="/setups/new" title="Criar postagem">
+            <Plus size={16} />
+            <span>Criar</span>
+          </CreateLink>
 
-            <DropdownItem
-              href="/settings"
-              onClick={() => setIsDropdownOpen(false)}
-            >
-              <Settings size={16} />
-              Configurações
-            </DropdownItem>
+          <TogleTheme checked={isDark} onChange={toggleTheme} />
 
-            <DropdownDivider />
+          <UserMenuContainer ref={menuRef}>
+            <Avatar
+              src={currentUser.avatarUrl}
+              fallback={currentUser.name}
+              size={36}
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            />
 
-            <LogoutAction onClick={handleLogout}>
-              <LogOut size={16} />
-              Sair
-            </LogoutAction>
-          </DropdownMenu>
-        </UserMenuContainer>
-      </ActionsContainer>
-    </NavContainer>
+            <DropdownMenu $isOpen={isDropdownOpen}>
+              <DropdownItem
+                href="/profile"
+                onClick={() => setIsDropdownOpen(false)}
+              >
+                <User size={16} />
+                Meu Perfil
+              </DropdownItem>
+
+              <DropdownItem
+                href="/settings"
+                onClick={() => setIsDropdownOpen(false)}
+              >
+                <Settings size={16} />
+                Configurações
+              </DropdownItem>
+
+              <DropdownDivider />
+
+              <LogoutAction onClick={handleLogout}>
+                <LogOut size={16} />
+                Sair
+              </LogoutAction>
+            </DropdownMenu>
+          </UserMenuContainer>
+        </ActionsContainer>
+      </NavContainer>
+
+      <QuickLinksWrap
+        initial={false}
+        animate={
+          showQuickLinks
+            ? {
+                opacity: 1,
+                y: 0,
+                maxHeight: 72,
+                paddingTop: 6,
+                paddingBottom: 8,
+                borderBottomColor: "rgba(0,0,0,0.08)",
+              }
+            : {
+                opacity: 0,
+                y: -4,
+                maxHeight: 0,
+                paddingTop: 0,
+                paddingBottom: 0,
+                borderBottomColor: "rgba(0,0,0,0)",
+              }
+        }
+        transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+        style={{ willChange: "transform, opacity, max-height" }}
+      >
+        <QuickLinksList aria-label="Links rápidos">
+          {QUICK_LINKS.map((item) => (
+            <QuickLink key={item.href} href={item.href}>
+              {item.label}
+            </QuickLink>
+          ))}
+        </QuickLinksList>
+      </QuickLinksWrap>
+
+    </NavRoot>
   );
 }
