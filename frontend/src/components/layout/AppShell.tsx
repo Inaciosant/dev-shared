@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
 import { Navbar } from "./Navbar";
+import Footer from "./Footer";
 
 type AppShellProps = {
   children: ReactNode;
@@ -21,6 +22,7 @@ export function AppShell({ children }: AppShellProps) {
     <>
       {!shouldHideNavbar && <Navbar />}
       {children}
+      <Footer />
     </>
   );
 }
