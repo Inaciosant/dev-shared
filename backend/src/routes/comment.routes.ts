@@ -6,6 +6,7 @@ import { asyncHandler } from './utils';
 const commentRoutes = Router();
 const commentController = new CommentController();
 
+commentRoutes.get('/setups/:setupId/comments', asyncHandler((req, res) => commentController.indexBySetup(req, res)));
 commentRoutes.post('/setups/:setupId/comments', authMiddleware, asyncHandler((req, res) => commentController.create(req, res)));
 commentRoutes.delete('/comments/:id', authMiddleware, asyncHandler((req, res) => commentController.delete(req, res)));
 

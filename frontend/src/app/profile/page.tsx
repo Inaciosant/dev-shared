@@ -1,7 +1,15 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 
-import { MOCK_LOGGED_USER_ID } from "@/mocks/setups";
+import { userService } from "@/services/user/user.service";
 
-export default function ProfilePage() {
-  redirect(`/users/${MOCK_LOGGED_USER_ID}`);
+export default async function ProfilePage() {
+  const cookieHeader = (await cookies()).toString();
+
+  try {
+    const me = await userService.me(cookieHeader);
+    redirect(`/users/${me._id}`);
+  } catch {
+    redirect("/login");
+  }
 }

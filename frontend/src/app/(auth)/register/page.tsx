@@ -5,11 +5,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 // componentes
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { AuthFormWrapper, AuthHeader, AuthBottomLink, AuthError } from '@/components/auth/AuthStyles';
+import { authService } from '@/services/auth/auth.service';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
@@ -25,6 +27,7 @@ type RegisterFormInputs = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const [authError, setAuthError] = useState<string | null>(null);
+  const router = useRouter();
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterFormInputs>({
     resolver: zodResolver(registerSchema),
@@ -33,7 +36,12 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterFormInputs) => {
     setAuthError(null);
     try {
-      console.log('Register data:', data);
+      await authService.register({
+        name: data.name,
+        email: data.email,
+        password: data.password,
+      });
+      router.push('/setups');
     } catch (error) {
       setAuthError('Ops! O cadastro falhou. Tente novamente mais tarde.');
     }

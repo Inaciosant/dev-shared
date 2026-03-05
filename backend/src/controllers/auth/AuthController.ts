@@ -3,6 +3,16 @@ import * as bcrypt from 'bcryptjs';
 import { User } from '../../models/User';
 import { generateToken } from '../../utils/auth';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
+const getAuthCookieConfig = () => ({
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? 'none' as const : 'lax' as const,
+  maxAge: 1000 * 60 * 60 * 24 * 7,
+  path: '/',
+});
+
 export class AuthController {
   // Registro de novo usuário
   async register(req: Request, res: Response) {
@@ -19,9 +29,12 @@ export class AuthController {
       password: hashedPassword
     });
 
+    const token = generateToken(user.id);
+    res.cookie('token', token, getAuthCookieConfig());
+
     return res.status(201).json({
       user: { id: user.id, name: user.name, email: user.email },
-      token: generateToken(user.id)
+      token
     });
   }
 
@@ -34,9 +47,23 @@ export class AuthController {
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
 
+    const token = generateToken(user.id);
+    res.cookie('token', token, getAuthCookieConfig());
+
     return res.json({
       user: { id: user.id, name: user.name, email: user.email },
-      token: generateToken(user.id)
+      token
     });
+  }
+
+  async logout(req: Request, res: Response) {
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/',
+    });
+
+    return res.status(204).send();
   }
 }

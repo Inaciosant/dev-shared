@@ -1,30 +1,30 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-
 import { SetupsListView } from "@/components/setup/SetupsListView";
-import { filterSetupsByQuery, mockSetups } from "@/mocks/setups";
+import { setupService } from "@/services/setup/setup.service";
+import { ISetup } from "@/types/setup";
 
-export default function SetupsPage() {
-  const searchParams = useSearchParams();
-  const query = searchParams.get("q") ?? "";
-  const [isLoading, setIsLoading] = useState(true);
+interface SetupsPageProps {
+  searchParams: Promise<{ q?: string }>;
+}
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => setIsLoading(false), 700);
-    return () => window.clearTimeout(timer);
-  }, [query]);
+export default async function SetupsPage({ searchParams }: SetupsPageProps) {
+  const { q } = await searchParams;
+  const query = q?.trim() ?? "";
+  let setups: ISetup[] = [];
+  let errorMessage = "";
 
-  const filteredSetups = filterSetupsByQuery(mockSetups, query);
+  try {
+    setups = await setupService.list(query ? { q: query } : undefined);
+  } catch {
+    errorMessage = "Não foi possível carregar os setups agora. Tente novamente em instantes.";
+  }
 
   return (
     <SetupsListView
       title="Explorar Setups"
       subtitle="Busque por stack, cargo ou tags usando a navbar."
-      setups={filteredSetups}
-      isLoading={isLoading}
+      setups={setups}
       query={query}
+      errorMessage={errorMessage}
       breadcrumbItems={[
         { label: "Início", href: "/" },
         { label: "Setups" },

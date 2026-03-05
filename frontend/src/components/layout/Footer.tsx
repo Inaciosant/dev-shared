@@ -9,6 +9,12 @@ const FooterContainer = styled.footer`
   border-top: 1px solid ${({ theme }) => theme.colors.borderFotter};
   background-color: ${({ theme }) => theme.colors.footer};
   padding: 1.5rem 2rem;
+  position: relative;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 
   @media (max-width: 640px) {
     padding: 1.25rem 1rem;
@@ -58,14 +64,26 @@ const FooterLink = styled(Link)`
 const FooterSocial = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 0.4rem;
+ 
 
   @media (max-width: 900px) {
     align-items: flex-start;
+    flex-direction: column;
   }
 `;
 
+const LinksWrapper = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+  
+  @media (max-width: 900px) {
+    flex-direction: column; 
+      align-items: flex-start; 
+  }
+`;
 const SocialLink = styled(Link)`
   color: ${({ theme }) => theme.colors.textSecondary};
   text-decoration: none;
@@ -138,6 +156,7 @@ const Footer: React.FC = () => {
 
         <FooterSocial>
           <SectionTitle>Redes</SectionTitle>
+          <LinksWrapper>
           <SocialLink
             href="https://github.com/inaciosant"
             target="_blank"
@@ -154,6 +173,7 @@ const Footer: React.FC = () => {
             <FooterIconLinkedin />
             LinkedIn
           </SocialLink>
+          </LinksWrapper>
         </FooterSocial>
       </FooterContent>
 

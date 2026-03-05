@@ -1,65 +1,40 @@
-"use client";
+import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 
-import styled from "styled-components";
-import { useParams } from "next/navigation";
+import { UserProfileView } from "@/components/user/UserProfileView";
+import { userService } from "@/services/user/user.service";
 
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
-import { LastPosts } from "@/components/user/LastPosts";
-import { WorkBudget } from "@/components/user/WorkBudget";
-import {
-  getSetupsByUserId,
-  getUserById,
-  MOCK_LOGGED_USER_ID,
-} from "@/mocks/setups";
+interface UserProfilePageProps {
+  params: Promise<{ id: string }>;
+}
 
-const Page = styled.main`
-  min-height: calc(100vh - 70px);
-  background: ${({ theme }) => theme.colors.background};
-  padding: 1.5rem;
-`;
-
-const Content = styled.div`
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-`;
-
-export default function UserProfilePage() {
-  const params = useParams<{ id: string }>();
-  const id = params?.id;
+export default async function UserProfilePage({ params }: UserProfilePageProps) {
+  const { id } = await params;
+  const cookieHeader = (await cookies()).toString();
 
   if (!id) {
-    return null;
+    notFound();
   }
 
-  const user = getUserById(id);
-
-  if (!user) {
-    return null;
+  let userData;
+  try {
+    userData = await userService.show(id, cookieHeader);
+  } catch {
+    notFound();
   }
 
-  const posts = getSetupsByUserId(id);
-  const isOwnProfile = id === MOCK_LOGGED_USER_ID;
+  const posts = await userService.setupsByUser(id, cookieHeader);
 
-  return (
-    <Page>
-      <Content>
-        <Breadcrumb
-          items={[
-            { label: "Inicio", href: "/" },
-            { label: "Perfil", href: `/users/${id}` },
-            { label: user.name },
-          ]}
-        />
+  let currentUserId: string | null = null;
+  try {
+    const me = await userService.me(cookieHeader);
+    currentUserId = me._id;
+  } catch {
+    currentUserId = null;
+  }
 
-        <WorkBudget
-          user={user}
-          postsCount={posts.length}
-          isOwnProfile={isOwnProfile}
-        />
+  const user = userData.user;
+  const isOwnProfile = currentUserId === id;
 
-        <LastPosts posts={posts} ownerName={user.name} />
-      </Content>
-    </Page>
-  );
+  return <UserProfileView userId={id} user={user} posts={posts} isOwnProfile={isOwnProfile} />;
 }

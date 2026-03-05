@@ -50,11 +50,20 @@ export class SetupController {
 
   async index(req: Request, res: Response) {
     try {
-      const { role, tag } = req.query;
+      const { role, tag, q } = req.query;
       const filter: any = {};
 
       if (role) filter.workRole = { $regex: role, $options: 'i' };
       if (tag) filter.tags = tag;
+      if (q) {
+        const query = String(q);
+        filter.$or = [
+          { title: { $regex: query, $options: 'i' } },
+          { workRole: { $regex: query, $options: 'i' } },
+          { tags: { $elemMatch: { $regex: query, $options: 'i' } } },
+          { softwareStack: { $elemMatch: { $regex: query, $options: 'i' } } },
+        ];
+      }
 
       const setups = await Setup.find(filter)
         .populate('user', 'name avatar workRole')

@@ -11,13 +11,12 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button'; 
 import { Input } from '@/components/ui/Input'; 
 import { AuthFormWrapper, AuthHeader, AuthBottomLink, AuthError } from '@/components/auth/AuthStyles';
+import { authService } from '@/services/auth/auth.service';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'O e-mail é obrigatório').email('E-mail inválido'),
   password: z.string().min(1, 'A senha é obrigatória'),
 });
-
-const ApiURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
 
 type LoginFormInputs = z.infer<typeof loginSchema>;
 
@@ -32,7 +31,7 @@ export default function LoginPage() {
  const onSubmit = async (data: LoginFormInputs) => {
     setAuthError(null); 
     try {
-      console.log('Login data:', data);
+      await authService.login(data);
       router.push('/setups');
     } catch (error) {
       setAuthError('Ops! O login falhou. Verifique suas credenciais e tente novamente.');

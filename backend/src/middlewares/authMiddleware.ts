@@ -8,13 +8,14 @@ interface TokenPayload {
 }
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  const cookieToken = req.cookies?.token;
   const authHeader = req.headers.authorization;
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : undefined;
+  const token = cookieToken || bearerToken;
 
-  if (!authHeader) {
+  if (!token) {
     return res.status(401).json({ error: 'Token não fornecido' });
   }
-
-  const [, token] = authHeader.split(' '); // Separa o "Bearer" do "TOKEN"
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as TokenPayload;

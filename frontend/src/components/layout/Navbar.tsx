@@ -4,12 +4,21 @@ import { FormEvent, useContext, useState, useRef, useEffect } from "react";
 import styled from "styled-components";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search, User, LogOut, Settings, Plus } from "lucide-react";
+import {
+  Search,
+  User,
+  LogOut,
+  Settings,
+  Plus,
+  Share2Icon,
+} from "lucide-react";
 import { motion, useMotionValueEvent, useScroll } from "framer-motion";
 
 import { ThemeToggleContext } from "../ThemeClientProvider";
 import TogleTheme from "../ui/TogleTheme";
 import { Avatar } from "../ui/Avatar";
+import { authService } from "@/services/auth/auth.service";
+import { userService } from "@/services/user/user.service";
 
 const NavRoot = styled(motion.div)`
   position: sticky;
@@ -73,7 +82,7 @@ const QuickLink = styled(Link)`
   }
 `;
 const UserMenuContainer = styled.div`
-  position: relative; /* Isso é crucial para o menu flutuar colado ao Avatar */
+  position: relative;
 `;
 
 const DropdownMenu = styled.div<{ $isOpen: boolean }>`
@@ -129,12 +138,7 @@ const LogoutAction = styled.button`
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: rgba(
-      239,
-      68,
-      68,
-      0.1
-    ); /* Fundo vermelho translúcido no hover */
+    background-color: rgba(239, 68, 68, 0.1);
   }
 `;
 
@@ -142,6 +146,10 @@ const Logo = styled.div`
   font-size: 1.5rem;
   font-weight: 700;
   color: ${({ theme }) => theme.colors.primary};
+  gap: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   a {
     text-decoration: none;
@@ -164,7 +172,7 @@ const ShortcutKey = styled.kbd`
   font-size: 0.75rem;
   font-family: inherit;
   color: ${({ theme }) => theme.colors.textSecondary};
-  pointer-events: none; /* Impede que o clique no atalho roube o foco do input */
+  pointer-events: none;
 
   @media (max-width: 640px) {
     display: none;
@@ -274,6 +282,10 @@ export function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showQuickLinks, setShowQuickLinks] = useState(true);
   const [isElevated, setIsElevated] = useState(false);
+  const [currentUser, setCurrentUser] = useState({
+    name: "Visitante",
+    avatarUrl: "",
+  });
   const menuRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll();
 
@@ -309,8 +321,14 @@ export function Navbar() {
 
     searchDebounceRef.current = window.setTimeout(() => {
       const normalized = rawValue.trim();
-      const onSearchRoute = pathname ? SEARCH_ENABLED_ROUTES.has(pathname) : false;
-      const targetPath = normalized ? (onSearchRoute ? pathname : "/setups") : pathname;
+      const onSearchRoute = pathname
+        ? SEARCH_ENABLED_ROUTES.has(pathname)
+        : false;
+      const targetPath = normalized
+        ? onSearchRoute
+          ? pathname
+          : "/setups"
+        : pathname;
 
       if (!targetPath) return;
 
@@ -322,8 +340,12 @@ export function Navbar() {
         params.delete("q");
       }
 
-      const nextUrl = params.toString() ? `${targetPath}?${params.toString()}` : targetPath;
-      const currentUrl = searchParams.toString() ? `${pathname}?${searchParams.toString()}` : pathname;
+      const nextUrl = params.toString()
+        ? `${targetPath}?${params.toString()}`
+        : targetPath;
+      const currentUrl = searchParams.toString()
+        ? `${pathname}?${searchParams.toString()}`
+        : pathname;
 
       if (nextUrl !== currentUrl) {
         router.replace(nextUrl);
@@ -347,6 +369,20 @@ export function Navbar() {
   }, []);
 
   useEffect(() => {
+    userService
+      .me()
+      .then((user) => {
+        setCurrentUser({
+          name: user.name,
+          avatarUrl: user.avatar || "",
+        });
+      })
+      .catch(() => {
+        setCurrentUser({ name: "Visitante", avatarUrl: "" });
+      });
+  }, []);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
@@ -357,13 +393,14 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const currentUser = {
-    name: "Inácio",
-    avatarUrl: "",
-  };
-
-  const handleLogout = () => {
-    console.log("Saindo do sistema...");
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      setIsDropdownOpen(false);
+      router.push("/login");
+    } catch {
+      setIsDropdownOpen(false);
+    }
   };
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -384,7 +421,11 @@ export function Navbar() {
     >
       <NavContainer>
         <Logo>
-          <Link href="/">DevStack</Link>
+           <Share2Icon size={20} />
+          <Link href="/">
+           
+            Dev Shared
+          </Link>
         </Logo>
 
         <SearchWrapper onSubmit={handleSearchSubmit}>
@@ -479,7 +520,6 @@ export function Navbar() {
           ))}
         </QuickLinksList>
       </QuickLinksWrap>
-
     </NavRoot>
   );
 }

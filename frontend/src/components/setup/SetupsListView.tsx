@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 "use client";
 
 import styled from "styled-components";
@@ -8,11 +9,12 @@ import { ISetup } from "@/types/setup";
 import { Breadcrumb, BreadcrumbItem } from "@/components/ui/Breadcrumb";
 
 interface SetupsListViewProps {
-  title: string;
+  title?: string;
   subtitle?: string;
   setups: ISetup[];
   isLoading?: boolean;
   query?: string;
+  errorMessage?: string;
   breadcrumbItems?: BreadcrumbItem[];
 }
 
@@ -64,12 +66,21 @@ const EmptyState = styled.div`
   background: ${({ theme }) => theme.colors.surface};
 `;
 
+const ErrorState = styled.div`
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 12px;
+  padding: 1rem;
+  color: ${({ theme }) => theme.colors.text};
+  background: ${({ theme }) => theme.colors.surface};
+`;
+
 export function SetupsListView({
   title,
   subtitle,
   setups,
   isLoading = false,
   query,
+  errorMessage,
   breadcrumbItems,
 }: SetupsListViewProps) {
   const showEmpty = !isLoading && setups.length === 0;
@@ -89,7 +100,11 @@ export function SetupsListView({
           ) : null}
         </Header>
 
-        {showEmpty ? (
+        {errorMessage ? (
+          <ErrorState>
+            {errorMessage}
+          </ErrorState>
+        ) : showEmpty ? (
           <EmptyState>
             Nenhum setup encontrado para "{query}". Tente outro termo.
           </EmptyState>

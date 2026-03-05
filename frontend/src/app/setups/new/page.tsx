@@ -14,6 +14,7 @@ import { ImagePlus, Plus, UploadCloud, X } from "lucide-react";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { setupService } from "@/services/setup/setup.service";
 
 const Page = styled.main`
   min-height: calc(100vh - 70px);
@@ -514,19 +515,46 @@ export default function NewSetupPage() {
 
     payload.append("title", form.title.trim());
     payload.append("workRole", form.workRole.trim());
-    payload.append("softwareStack", form.softwareStack.trim());
-    payload.append("tags", form.tags.trim());
+    payload.append(
+      "softwareStack",
+      JSON.stringify(
+        form.softwareStack
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
+      ),
+    );
+    payload.append(
+      "tags",
+      JSON.stringify(
+        form.tags
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
+      ),
+    );
     payload.append("description", form.description.trim());
     payload.append("gears", JSON.stringify(normalizedGears));
     payload.append("thumbnail", thumbnailFile);
 
-    for (const [key, value] of payload.entries()) {
-      console.log("multipart", key, value);
+    try {
+      await setupService.create(payload);
+      setSubmitted(form);
+      setForm(INITIAL_FORM);
+      setErrors({});
+      setThumbnailFile(null);
+      if (thumbnailPreview) {
+        URL.revokeObjectURL(thumbnailPreview);
+      }
+      setThumbnailPreview("");
+    } catch {
+      setErrors((prev) => ({
+        ...prev,
+        title: "Não foi possível criar a postagem agora.",
+      }));
+    } finally {
+      setIsSubmitting(false);
     }
-
-    await new Promise((resolve) => window.setTimeout(resolve, 450));
-    setSubmitted(form);
-    setIsSubmitting(false);
   };
 
   return (

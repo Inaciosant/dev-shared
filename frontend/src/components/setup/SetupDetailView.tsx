@@ -16,11 +16,9 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { Button } from "@/components/ui/Button";
-import { getMockCommentsBySetupId } from "@/mocks/setups";
+import { commentService } from "@/services/comment/comment.service";
 import { IComment } from "@/types/comments";
 import { ISetup } from "@/types/setup";
-
-const CURRENT_USER = { _id: "mock-user", name: "Você", avatar: "" };
 
 const Page = styled.main`
   min-height: calc(100vh - 70px);
@@ -255,8 +253,15 @@ const CommentCard = styled.div`
 const CommentTop = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin-bottom: 0.4rem;
+`;
+
+const CommentMeta = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 `;
 
 const CommentAuthor = styled.span`
@@ -274,6 +279,37 @@ const CommentContent = styled.p`
   margin: 0;
   color: ${({ theme }) => theme.colors.textSecondary};
   line-height: 1.5;
+`;
+
+const CommentActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+`;
+
+const ActionButton = styled.button`
+  border: none;
+  background: transparent;
+  color: ${({ theme }) => theme.colors.primary};
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+const RepliesList = styled.div`
+  margin-top: 0.65rem;
+  margin-left: 1.75rem;
+  display: grid;
+  gap: 0.55rem;
+`;
+
+const ReplyCard = styled.div`
+  border-left: 2px solid ${({ theme }) => theme.colors.border};
+  padding-left: 0.75rem;
 `;
 
 const EmptyComments = styled.div`
@@ -320,6 +356,11 @@ const ErrorText = styled.span`
   font-size: 0.825rem;
 `;
 
+const ReplyingInfo = styled.div`
+  font-size: 0.84rem;
+  color: ${({ theme }) => theme.colors.textSecondary};
+`;
+
 function formatDate(date: string) {
   return new Date(date).toLocaleString("pt-BR", {
     day: "2-digit",
@@ -331,14 +372,20 @@ function formatDate(date: string) {
 
 interface SetupDetailViewProps {
   setup: ISetup;
+  initialComments: IComment[];
+  currentUserId: string | null;
 }
 
-export function SetupDetailView({ setup }: SetupDetailViewProps) {
-  const [comments, setComments] = useState<IComment[]>(() =>
-    getMockCommentsBySetupId(setup._id),
-  );
+export function SetupDetailView({
+  setup,
+  initialComments,
+  currentUserId,
+}: SetupDetailViewProps) {
+  const [comments, setComments] = useState<IComment[]>(initialComments);
   const [newComment, setNewComment] = useState("");
+  const [replyingTo, setReplyingTo] = useState<IComment | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -351,6 +398,21 @@ export function SetupDetailView({ setup }: SetupDetailViewProps) {
     [setup.thumbnail, setup.images],
   );
   const hasCarousel = galleryImages.length > 1;
+  const topLevelComments = useMemo(
+    () => comments.filter((comment) => !comment.parentComment),
+    [comments],
+  );
+  const repliesByParent = useMemo(() => {
+    return comments.reduce<Record<string, IComment[]>>((acc, comment) => {
+      if (!comment.parentComment) return acc;
+
+      const parentId = comment.parentComment;
+      const list = acc[parentId] ?? [];
+      list.push(comment);
+      acc[parentId] = list;
+      return acc;
+    }, {});
+  }, [comments]);
 
   const handleNextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % galleryImages.length);
@@ -379,21 +441,43 @@ export function SetupDetailView({ setup }: SetupDetailViewProps) {
     setError("");
     setIsSubmitting(true);
 
-    await new Promise((resolve) => window.setTimeout(resolve, 350));
+    try {
+      const comment = await commentService.create(setup._id, {
+        content,
+        parentComment: replyingTo?._id ?? null,
+      });
 
-    const now = new Date().toISOString();
-    const comment: IComment = {
-      _id: `comment-${Date.now()}`,
-      setup: setup._id,
-      user: CURRENT_USER,
-      content,
-      createdAt: now,
-      updatedAt: now,
-    };
+      setComments((prev) =>
+        replyingTo ? [...prev, comment] : [comment, ...prev],
+      );
+      setNewComment("");
+      setReplyingTo(null);
+    } catch {
+      setError("Não foi possível enviar seu comentário agora.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    setComments((prev) => [comment, ...prev]);
-    setNewComment("");
-    setIsSubmitting(false);
+  const handleDeleteComment = async (commentId: string) => {
+    setIsDeletingId(commentId);
+
+    try {
+      await commentService.remove(commentId);
+      setComments((prev) =>
+        prev.filter(
+          (comment) => comment._id !== commentId && comment.parentComment !== commentId,
+        ),
+      );
+
+      if (replyingTo?._id === commentId) {
+        setReplyingTo(null);
+      }
+    } catch {
+      setError("Não foi possível excluir o comentário.");
+    } finally {
+      setIsDeletingId(null);
+    }
   };
 
   return (
@@ -546,25 +630,81 @@ export function SetupDetailView({ setup }: SetupDetailViewProps) {
             <EmptyComments>Seja o primeiro a comentar este setup.</EmptyComments>
           ) : (
             <CommentList>
-              {comments.map((comment) => (
+              {topLevelComments.map((comment) => (
                 <CommentCard key={comment._id}>
                   <CommentTop>
-                    <Avatar src={comment.user.avatar} fallback={comment.user.name} size={28} />
-                    <CommentAuthor>{comment.user.name}</CommentAuthor>
-                    <CommentDate>{formatDate(comment.createdAt)}</CommentDate>
+                    <CommentMeta>
+                      <Avatar src={comment.user.avatar} fallback={comment.user.name} size={28} />
+                      <CommentAuthor>{comment.user.name}</CommentAuthor>
+                      <CommentDate>{formatDate(comment.createdAt)}</CommentDate>
+                    </CommentMeta>
+                    <CommentActions>
+                      <ActionButton type="button" onClick={() => setReplyingTo(comment)}>
+                        Responder
+                      </ActionButton>
+                      {currentUserId && comment.user._id === currentUserId ? (
+                        <ActionButton
+                          type="button"
+                          onClick={() => handleDeleteComment(comment._id)}
+                          disabled={isDeletingId === comment._id}
+                        >
+                          Excluir
+                        </ActionButton>
+                      ) : null}
+                    </CommentActions>
                   </CommentTop>
                   <CommentContent>{comment.content}</CommentContent>
+
+                  {(repliesByParent[comment._id] ?? []).length > 0 ? (
+                    <RepliesList>
+                      {(repliesByParent[comment._id] ?? []).map((reply) => (
+                        <ReplyCard key={reply._id}>
+                          <CommentTop>
+                            <CommentMeta>
+                              <Avatar src={reply.user.avatar} fallback={reply.user.name} size={24} />
+                              <CommentAuthor>{reply.user.name}</CommentAuthor>
+                              <CommentDate>{formatDate(reply.createdAt)}</CommentDate>
+                            </CommentMeta>
+                            {currentUserId && reply.user._id === currentUserId ? (
+                              <CommentActions>
+                                <ActionButton
+                                  type="button"
+                                  onClick={() => handleDeleteComment(reply._id)}
+                                  disabled={isDeletingId === reply._id}
+                                >
+                                  Excluir
+                                </ActionButton>
+                              </CommentActions>
+                            ) : null}
+                          </CommentTop>
+                          <CommentContent>{reply.content}</CommentContent>
+                        </ReplyCard>
+                      ))}
+                    </RepliesList>
+                  ) : null}
                 </CommentCard>
               ))}
             </CommentList>
           )}
 
           <Form onSubmit={handleSubmit}>
+            {replyingTo ? (
+              <ReplyingInfo>
+                Respondendo a {replyingTo.user.name}.{" "}
+                <ActionButton type="button" onClick={() => setReplyingTo(null)}>
+                  Cancelar
+                </ActionButton>
+              </ReplyingInfo>
+            ) : null}
             <Textarea
               $hasError={!!error}
               value={newComment}
               onChange={(event) => setNewComment(event.target.value)}
-              placeholder="Adicione um comentário sobre este setup..."
+              placeholder={
+                replyingTo
+                  ? `Responda ${replyingTo.user.name}...`
+                  : "Adicione um comentário sobre este setup..."
+              }
               maxLength={500}
             />
             <FormFooter>
@@ -573,7 +713,11 @@ export function SetupDetailView({ setup }: SetupDetailViewProps) {
                 <Count>{helperText}</Count>
               </div>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Enviando..." : "Adicionar comentário"}
+                {isSubmitting
+                  ? "Enviando..."
+                  : replyingTo
+                    ? "Responder"
+                    : "Adicionar comentário"}
               </Button>
             </FormFooter>
           </Form>
